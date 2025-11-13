@@ -32,6 +32,7 @@ export default function ChatContainer({ messages, isLoading }) {
               key={msg.id || index}
               message={msg.text}
               isUser={msg.sender === "user"}
+              documents={msg.documents}
             />
           ))}
 
