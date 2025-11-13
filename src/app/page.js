@@ -7,9 +7,6 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * Envia mensagem COM streaming (resposta aparece aos poucos)
-   */
   const handleSend = async (msg) => {
     const userMessage = { 
       id: Date.now(), 
@@ -17,13 +14,6 @@ export default function ChatPage() {
       sender: "user" 
     };
     setMessages((prev) => [...prev, userMessage]);
-    
-    const botMessageId = Date.now() + 1;
-    setMessages((prev) => [...prev, { 
-      id: botMessageId,
-      text: "", 
-      sender: "bot" 
-    }]);
     
     setIsLoading(true);
     
@@ -39,42 +29,96 @@ export default function ChatPage() {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+      }
+
+      if (!response.body) {
+        throw new Error("Resposta vazia do servidor");
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      
+      const botMessageId = Date.now() + 1;
+      let fullText = "";
+      let documents = null;
+      let buffer = "";
 
-      // Lê o stream chunk por chunk
       while (true) {
         const { done, value } = await reader.read();
         
         if (done) break;
         
-        const text = decoder.decode(value);
+        buffer += decoder.decode(value, { stream: true });
+        
+        // Processa eventos SSE completos
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() || "";
+        
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          
+          const eventMatch = line.match(/event: (\w+)\ndata: (.+)/);
+          if (eventMatch) {
+            const [, eventType, data] = eventMatch;
+            
+            console.log("📡 Evento:", eventType);
+            
+            if (eventType === "documents") {
+              try {
+                const parsed = JSON.parse(data);
+                documents = parsed.data;
+                console.log("📚 Documentos:", documents.length);
+              } catch (e) {
+                console.error("Erro ao parsear documentos:", e);
+              }
+            } else if (eventType === "text") {
+              try {
+                const parsed = JSON.parse(data);
+                fullText += parsed.text;
+              } catch (e) {
+                console.error("Erro ao parsear texto:", e);
+              }
+            }
+          }
+        }
         
         setMessages((prev) => {
           const newMessages = [...prev];
-          const lastMessage = newMessages[newMessages.length - 1];
+          const botIndex = newMessages.findIndex(m => m.id === botMessageId);
           
-          if (lastMessage.id === botMessageId) {
-            lastMessage.text += text;
+          if (botIndex === -1) {
+            newMessages.push({
+              id: botMessageId,
+              text: fullText,
+              sender: "bot",
+              documents: documents
+            });
+          } else {
+            newMessages[botIndex].text = fullText;
+            if (documents) {
+              newMessages[botIndex].documents = documents;
+            }
           }
           
           return newMessages;
         });
       }
       
-    } catch (error) {
-      console.error("Erro ao enviar mensagem:", error);
+      console.log("✅ Finalizado. Docs:", documents?.length || 0);
       
-      setMessages((prev) => {
-        const newMessages = [...prev];
-        const lastMessage = newMessages[newMessages.length - 1];
-        
-        if (lastMessage.id === botMessageId) {
-          lastMessage.text = "Desculpe, ocorreu um erro. Tente novamente.";
+    } catch (error) {
+      console.error("Erro no chat:", error.message);
+      
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          text: "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
+          sender: "bot"
         }
-        
-        return newMessages;
-      });
+      ]);
     } finally {
       setIsLoading(false);
     }
