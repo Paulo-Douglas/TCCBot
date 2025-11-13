@@ -1,4 +1,3 @@
-// lib/rag/qdrant.js
 import { QdrantClient } from "@qdrant/js-client-rest";
 
 const client = new QdrantClient({
@@ -30,6 +29,7 @@ export async function searchSimilar(embedding, limit = 5) {
       abstract: result.payload.resumo || "Sem resumo",
       url: result.payload.uri || "Sem link",
       author: result.payload.autor || "Sem autor",
+      advisor: result.payload.orientador || null, 
       course: result.payload.curso || "Sem curso",
     }));
   } catch (error) {
