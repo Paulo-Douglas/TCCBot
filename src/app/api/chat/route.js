@@ -28,7 +28,7 @@ export async function POST(request) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // PRIMEIRO: Envia os documentos como evento SSE
+            //Envia os documentos como evento SSE
             const docsData = {
               type: "documents",
               data: docs.map(doc => ({
@@ -45,7 +45,7 @@ export async function POST(request) {
             const sseMessage = `event: documents\ndata: ${JSON.stringify(docsData)}\n\n`;
             controller.enqueue(encoder.encode(sseMessage));
             
-            // DEPOIS: Envia o texto em streaming
+            //Envia o texto em streaming
             for await (const chunk of responseStream) {
               const text = chunk.choices[0]?.delta?.content || "";
               if (text) {
