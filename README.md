@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Ceres TCC AI 🎓
 
-## Getting Started
+Assistente inteligente para pesquisa de TCCs do CERES - UFRN usando RAG (Retrieval-Augmented Generation).
 
-First, run the development server:
+🔗 **[Acesse: tccbot.carcaratech.dev](https://tccbot.carcaratech.dev/)**
 
+## 📋 Sobre
+
+Chatbot especializado que busca e explica trabalhos de conclusão de curso do CERES - UFRN usando busca semântica e IA generativa.
+
+**Principais recursos:**
+- 🔍 Busca semântica inteligente
+- 💬 Respostas contextualizadas em tempo real
+- 📚 Detalhes completos dos TCCs (autor, orientador, resumo)
+- ⚡ Interface responsiva com streaming
+
+## 🛠️ Stack
+
+**Frontend:** Next.js 15, React 19, Tailwind CSS 4  
+**IA/Backend:** Hugging Face (embeddings), Qdrant (vector DB), Groq/Llama 3.1 (LLM)
+
+## 🚀 Instalação
 ```bash
+# Clone e instale
+git clone https://github.com/seu-usuario/ceres-tcc-ai.git
+cd ceres-tcc-ai
+npm install
+
+# Configure .env.local
+HUGGINGFACE_API_KEY=seu_token
+QDRANT_URL=sua_url
+QDRANT_API_KEY=sua_chave
+QDRANT_COLLECTION_NAME=nome_colecao
+GROQ_API_KEY=sua_chave
+
+# Execute
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📁 Estrutura
+```
+src/
+├── app/
+│   ├── api/chat/route.js    # API do chat
+│   └── page.js              # Página principal
+├── components/              # Componentes UI
+└── lib/rag/                # Pipeline RAG
+    ├── embeddings.js       # Geração de embeddings
+    ├── qdrant.js          # Busca vetorial
+    ├── context.js         # Montagem de contexto
+    └── llm.js             # Interface LLM
+```
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## 🔧 Como Funciona
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Usuário faz uma pergunta
+2. Sistema gera embedding da pergunta
+3. Busca TCCs similares no Qdrant
+4. Monta contexto com documentos relevantes
+5. LLM gera resposta didática
+6. Exibe resposta + cards dos TCCs
 
-## Learn More
+## 📄 Licença
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT License
