@@ -69,7 +69,6 @@ export default function ChatPage() {
               try {
                 const parsed = JSON.parse(data);
                 documents = parsed.data;
-                console.log("📚 Documentos:", documents.length);
               } catch (e) {
                 console.error("Erro ao parsear documentos:", e);
               }
@@ -105,9 +104,6 @@ export default function ChatPage() {
           return newMessages;
         });
       }
-      
-      console.log("✅ Finalizado. Docs:", documents?.length || 0);
-      
     } catch (error) {
       console.error("Erro no chat:", error.message);
       
