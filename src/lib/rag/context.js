@@ -1,5 +1,3 @@
-// lib/rag/context.js
-
 /**
  * Monta o contexto para a LLM com os TCCs encontrados
  * @param {string} question - Pergunta do usuário
