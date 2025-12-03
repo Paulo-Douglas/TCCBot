@@ -1,128 +1,53 @@
 "use client";
-import { useState } from "react";
+import { useChat } from "ai/react";
 import ChatContainer from "@/components/Chat/ChatContainer";
 import ChatFooter from "@/components/ChatFooder/ChatFooder";
+import { useMemo } from "react";
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const { messages, input, setInput, handleSubmit, isLoading, data } = useChat({
+    api: "/api/chat",
+  });
 
-  const handleSend = async (msg) => {
-    const userMessage = { 
-      id: Date.now(), 
-      text: msg, 
-      sender: "user" 
-    };
-    setMessages((prev) => [...prev, userMessage]);
+  // Mapeia documentos para mensagens
+  const messagesWithDocs = useMemo(() => {
+    const docsMap = new Map();
     
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          message: msg,
-          stream: true
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.status}`);
-      }
-
-      if (!response.body) {
-        throw new Error("Resposta vazia do servidor");
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      
-      const botMessageId = Date.now() + 1;
-      let fullText = "";
-      let documents = null;
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
+    // Constrói mapa de documentos
+    data?.forEach((item) => {
+      if (item?.documents) {
+        const assistantMsg = messages
+          .slice()
+          .reverse()
+          .find((m) => m.role === "assistant");
         
-        if (done) break;
-        
-        buffer += decoder.decode(value, { stream: true });
-        
-        // Processa eventos SSE completos
-        const lines = buffer.split("\n\n");
-        buffer = lines.pop() || "";
-        
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          
-          const eventMatch = line.match(/event: (\w+)\ndata: (.+)/);
-          if (eventMatch) {
-            const [, eventType, data] = eventMatch;
-            
-            console.log("📡 Evento:", eventType);
-            
-            if (eventType === "documents") {
-              try {
-                const parsed = JSON.parse(data);
-                documents = parsed.data;
-              } catch (e) {
-                console.error("Erro ao parsear documentos:", e);
-              }
-            } else if (eventType === "text") {
-              try {
-                const parsed = JSON.parse(data);
-                fullText += parsed.text;
-              } catch (e) {
-                console.error("Erro ao parsear texto:", e);
-              }
-            }
-          }
+        if (assistantMsg) {
+          docsMap.set(assistantMsg.id, item.documents);
         }
-        
-        setMessages((prev) => {
-          const newMessages = [...prev];
-          const botIndex = newMessages.findIndex(m => m.id === botMessageId);
-          
-          if (botIndex === -1) {
-            newMessages.push({
-              id: botMessageId,
-              text: fullText,
-              sender: "bot",
-              documents: documents
-            });
-          } else {
-            newMessages[botIndex].text = fullText;
-            if (documents) {
-              newMessages[botIndex].documents = documents;
-            }
-          }
-          
-          return newMessages;
-        });
       }
-    } catch (error) {
-      console.error("Erro no chat:", error.message);
-      
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          text: "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
-          sender: "bot"
-        }
-      ]);
-    } finally {
-      setIsLoading(false);
-    }
+    });
+
+    // Formata mensagens
+    return messages.map((msg) => ({
+      id: msg.id,
+      text: msg.content,
+      sender: msg.role === "user" ? "user" : "bot",
+      documents: msg.role === "assistant" ? docsMap.get(msg.id) : undefined,
+    }));
+  }, [messages, data]);
+
+  const handleSend = (message) => {
+    setInput(message);
+    // Aguarda input ser atualizado antes de submeter
+    setTimeout(() => {
+      const event = new Event("submit", { cancelable: true, bubbles: true });
+      handleSubmit(event);
+    }, 0);
   };
 
   return (
     <div className="flex flex-col h-full">
-      <ChatContainer messages={messages} isLoading={isLoading} />
+      <ChatContainer messages={messagesWithDocs} isLoading={isLoading} />
       <ChatFooter onSend={handleSend} />
     </div>
   );
